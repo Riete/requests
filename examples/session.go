@@ -28,7 +28,7 @@ func main() {
 	}
 	fmt.Println(resp.Content(), resp.StatusCode(), resp.Status())
 
-	s.SetBearTokenAuth("xxx")
+	s.SetBearerTokenAuth("xxx")
 	resp, err = s.PostJson("http://xxx", data)
 	if err != nil {
 		fmt.Println(err)

@@ -42,7 +42,7 @@ func (s *session) SetBasicAuth(username, password string) {
 	s.httpreq.SetBasicAuth(username, password)
 }
 
-func (s *session) SetBearTokenAuth(token string) {
+func (s *session) SetBearerTokenAuth(token string) {
 	s.httpreq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 }
 
