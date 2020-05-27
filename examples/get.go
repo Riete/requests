@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	resp, err := requests.Get("http://xxxx")
+	resp, err := requests.Get("https://xxx")
 	if err != nil {
 		fmt.Println(err)
 	}

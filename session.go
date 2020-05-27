@@ -2,13 +2,17 @@ package requests
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -17,10 +21,8 @@ const (
 )
 
 type Session struct {
-	client   *http.Client
-	cookies  []*http.Cookie
-	response *Response
-	request  *http.Request
+	cookies []*http.Cookie
+	Request
 }
 
 func NewSession() *Session {
@@ -77,8 +79,39 @@ func (s *Session) setCookies(originUrl string) {
 
 func (s *Session) do() (*Response, error) {
 	resp, err := s.client.Do(s.request)
-	s.response.Resp = resp
+	s.response.resp = resp
 	return s.response, err
+}
+
+func (s *Session) SetTimeout(t time.Duration) {
+	s.client.Timeout = t * time.Second
+}
+
+func (s *Session) SkipTLSVerify() {
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+	}
+	s.client.Transport = tr
+}
+
+func (s *Session) SetProxy(proxy map[string]string) {
+	for k, v := range proxy {
+		err := os.Setenv(k, v)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (s *Session) Get(originUrl string) (*Response, error) {

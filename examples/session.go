@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/riete/requests"
 )
@@ -51,5 +52,14 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Println(resp.Content(), resp.StatusCode(), resp.Status())
-
+	s.SetTimeout(1 * time.Microsecond)
+	s.SkipTLSVerify()
+	proxy := map[string]string{
+		"http_proxy":  "http://xxx",
+		"https_proxy": "http://xxxx",
+	}
+	s.SetProxy(proxy)
+	resp, err = s.Get("https://xxx")
+	fmt.Println(resp)
+	fmt.Println(err)
 }

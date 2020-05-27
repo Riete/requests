@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const (
@@ -13,88 +14,115 @@ const (
 	ContentTypeForm string = "application/x-www-form-urlencoded"
 )
 
+type Request struct {
+	request  *http.Request
+	client   *http.Client
+	response *Response
+}
+
 type Response struct {
-	Resp *http.Response
+	resp *http.Response
 }
 
-func (r *Response) Content() string {
-	defer r.Resp.Body.Close()
-	body, _ := ioutil.ReadAll(r.Resp.Body)
-	return string(body)
+func NewRequest() *Request {
+	r := &Request{}
+	r.client = &http.Client{}
+	r.request, _ = http.NewRequest("", "", nil)
+	r.response = &Response{}
+	return r
 }
 
-func (r *Response) StatusCode() int {
-	return r.Resp.StatusCode
+func (r *Request) do() (*Response, error) {
+	resp, err := r.client.Do(r.request)
+	r.response.resp = resp
+	return r.response, err
 }
 
-func (r *Response) Status() string {
-	return r.Resp.Status
+func (r *Request) Get(originUrl string) (*Response, error) {
+	r.request.Method = GET
+	r.request.URL = parseUrl(originUrl)
+	return r.do()
 }
 
-func (r *Response) Cookies() []*http.Cookie {
-	return r.Resp.Cookies()
-}
-
-func Get(originUrl string) (*Response, error) {
-	r := &Response{}
-	resp, err := http.Get(originUrl)
-	if err != nil {
-		return nil, err
-	}
-	r.Resp = resp
-	return r, err
-}
-
-func GetWithParams(originUrl string, params map[string]string) (*Response, error) {
-	r := &Response{}
-	sendUrl, err := url.Parse(originUrl)
-	if err != nil {
-		return nil, err
-	}
+func (r *Request) GetWithParams(originUrl string, params map[string]string) (*Response, error) {
+	r.request.Method = GET
+	r.request.URL = parseUrl(originUrl)
+	sendUrl := parseUrl(originUrl)
 	p := url.Values{}
 	for k, v := range params {
 		p.Add(k, v)
 	}
 	sendUrl.RawQuery = p.Encode()
-	resp, err := http.Get(sendUrl.String())
-	if err != nil {
-		return nil, err
-	}
-	r.Resp = resp
-	return r, nil
+	r.request.URL = sendUrl
+	return r.do()
 }
 
-func Post(originUrl string) (*Response, error) {
-	r := &Response{}
-	resp, err := http.Post(originUrl, ContentTypeJson, nil)
-	if err != nil {
-		return nil, err
-	}
-	r.Resp = resp
-	return r, nil
+func (r *Request) Post(originUrl string) (*Response, error) {
+	r.request.Method = POST
+	r.request.URL = parseUrl(originUrl)
+	return r.do()
 }
 
-func PostJson(originUrl string, data map[string]interface{}) (*Response, error) {
-	r := &Response{}
+func (r *Request) PostJson(originUrl string, data map[string]interface{}) (*Response, error) {
+	r.request.Method = POST
+	r.request.URL = parseUrl(originUrl)
 	jsonStr, _ := json.Marshal(data)
-	resp, err := http.Post(originUrl, ContentTypeJson, bytes.NewBuffer(jsonStr))
-	if err != nil {
-		return nil, err
-	}
-	r.Resp = resp
-	return r, nil
+	r.request.Header.Set("Content-Type", ContentTypeJson)
+	r.request.Body = ioutil.NopCloser(bytes.NewBuffer(jsonStr))
+	return r.do()
 }
 
-func PostForm(originUrl string, data map[string]string) (*Response, error) {
-	r := &Response{}
+func (r *Request) PostForm(originUrl string, data map[string]string) (*Response, error) {
+	r.request.Method = POST
+	r.request.URL = parseUrl(originUrl)
+	r.request.Header.Set("Content-Type", ContentTypeForm)
 	formData := url.Values{}
 	for k, v := range data {
 		formData.Add(k, v)
 	}
-	resp, err := http.PostForm(originUrl, formData)
-	if err != nil {
-		return nil, err
-	}
-	r.Resp = resp
-	return r, nil
+	r.request.Body = ioutil.NopCloser(strings.NewReader(formData.Encode()))
+	return r.do()
+}
+
+func (r *Response) Content() string {
+	defer r.resp.Body.Close()
+	body, _ := ioutil.ReadAll(r.resp.Body)
+	return string(body)
+}
+
+func (r *Response) StatusCode() int {
+	return r.resp.StatusCode
+}
+
+func (r *Response) Status() string {
+	return r.resp.Status
+}
+
+func (r *Response) Cookies() []*http.Cookie {
+	return r.resp.Cookies()
+}
+
+func Get(originUrl string) (*Response, error) {
+	r := NewRequest()
+	return r.Get(originUrl)
+}
+
+func GetWithParams(originUrl string, params map[string]string) (*Response, error) {
+	r := NewRequest()
+	return r.GetWithParams(originUrl, params)
+}
+
+func Post(originUrl string) (*Response, error) {
+	r := NewRequest()
+	return r.Post(originUrl)
+}
+
+func PostJson(originUrl string, data map[string]interface{}) (*Response, error) {
+	r := NewRequest()
+	return r.PostJson(originUrl, data)
+}
+
+func PostForm(originUrl string, data map[string]string) (*Response, error) {
+	r := NewRequest()
+	return r.PostForm(originUrl, data)
 }
