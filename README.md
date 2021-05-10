@@ -55,7 +55,7 @@ import (
 s := requests.NewSession()
 
 // set timeout to 5 second
-s.SetTimeout(5)
+s.SetTimeout(5 * time.Second)
 
 // set skip tls verify
 s.SkipTLSVerify()

@@ -79,7 +79,7 @@ func (s *session) do() (*response, error) {
 }
 
 func (s *session) SetTimeout(t time.Duration) {
-	s.client.Timeout = t * time.Second
+	s.client.Timeout = t
 }
 
 func (s *session) SkipTLSVerify() {
