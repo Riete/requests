@@ -82,7 +82,7 @@ s.JsonAuth("http://example.com", auth)
 
 // post form
 auth := map[string]string{"username": "xxx", "password": "xxx"}
-s.FromAuth("http://example.com", auth)
+s.FormAuth("http://example.com", auth)
 
 // get
 s.Get("http://example.com")
