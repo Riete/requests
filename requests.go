@@ -46,15 +46,7 @@ func NewRequest(config *Config) *Request {
 	r := &Request{}
 	r.Client = &http.Client{}
 	r.Req, _ = http.NewRequest("", "", nil)
-	if config == nil {
-		config = DefaultConfig
-	}
-	r.SetTimeout(config.Timeout)
-	r.SetHeader(config.Headers)
-	r.SetProxy(config.Proxy)
-	if config.SkipTLSVerify {
-		r.SkipTLSVerify()
-	}
+	r.init(config)
 	return r
 }
 
@@ -62,6 +54,17 @@ func NewSession(config *Config) *Request {
 	r := NewRequest(config)
 	r.Client.Jar, _ = cookiejar.New(nil)
 	return r
+}
+
+func (r *Request) init(config *Config) {
+	if config == nil {
+		config = DefaultConfig
+	}
+	r.SetHeader(config.Headers)
+	r.SetTimeout(config.Timeout)
+	if config.SkipTLSVerify {
+		r.SkipTLSVerify()
+	}
 }
 
 func (r *Request) SetHeader(headers map[string]string) {
@@ -88,7 +91,6 @@ func (r *Request) SkipTLSVerify() {
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
-			DualStack: true,
 		}).DialContext,
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
