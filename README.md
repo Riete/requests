@@ -4,19 +4,18 @@ Go HTTP Client Library
 
 ## Usage
 ```
-// request
+// Default Request
 url := "http://x.x.x.x"
-r := NewRequest(DefaultConfig)
-r.Get(url, nil)
-r.Get(url, map[string]string{"a": "1", "b": "2"})
-r.Post(url, map[string]interface{}{"a": "1", "b": "2"})
-r.PostForm(url, map[string]string{"a": "1", "b": "2"})
-r.Put(url, map[string]interface{}{"a": "1", "b": "2"})
-r.Delete(url)
+requests.Get(url, nil)
+requests.Get(url, map[string]string{"a": "1", "b": "2"})
+requests.Post(url, map[string]interface{}{"a": "1", "b": "2"})
+requests.PostForm(url, map[string]string{"a": "1", "b": "2"})
+requests.Put(url, map[string]interface{}{"a": "1", "b": "2"})
+requests.Delete(url)
 
-// session
+// Default Session
 loginUrl := "http://x.x.x.x/login"
-s := NewSession(DefaultConfig)
+s := requests.Session()
 s.Post(loginUrl, map[string]interface{}{"user": "username", "password": "password"})
 s.Get(url, nil)
 s.Get(url, map[string]string{"a": "1", "b": "2"})
@@ -24,4 +23,9 @@ s.Post(url, map[string]interface{}{"a": "1", "b": "2"})
 s.PostForm(url, map[string]string{"a": "1", "b": "2"})
 s.Put(url, map[string]interface{}{"a": "1", "b": "2"})
 s.Delete(url)
+
+// New Request
+r := NewRequest(DefaultConfig)
+// New Session
+s := NewSession(DefaultConfig)
 ```

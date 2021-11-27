@@ -117,7 +117,7 @@ func (r *Request) ParseUrl(originUrl string) error {
 	}
 }
 
-func (r *Request) Do() error {
+func (r *Request) do() error {
 	resp, err := r.Client.Do(r.Req)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (r *Request) Get(originUrl string, params map[string]string) error {
 		p.Add(k, v)
 	}
 	r.Req.URL.RawQuery = p.Encode()
-	return r.Do()
+	return r.do()
 }
 
 func (r *Request) Post(originUrl string, data map[string]interface{}) error {
@@ -158,7 +158,7 @@ func (r *Request) Post(originUrl string, data map[string]interface{}) error {
 	}
 	r.Req.Header.Set("Content-Type", ContentTypeJson)
 	r.Req.Body = ioutil.NopCloser(bytes.NewBuffer(jsonStr))
-	return r.Do()
+	return r.do()
 }
 
 func (r *Request) PostForm(originUrl string, data map[string]string) error {
@@ -172,7 +172,7 @@ func (r *Request) PostForm(originUrl string, data map[string]string) error {
 		formData.Add(k, v)
 	}
 	r.Req.Body = ioutil.NopCloser(strings.NewReader(formData.Encode()))
-	return r.Do()
+	return r.do()
 }
 
 func (r *Request) Put(originUrl string, data map[string]interface{}) error {
@@ -183,7 +183,7 @@ func (r *Request) Put(originUrl string, data map[string]interface{}) error {
 	jsonStr, _ := json.Marshal(data)
 	r.Req.Header.Set("Content-Type", ContentTypeJson)
 	r.Req.Body = ioutil.NopCloser(bytes.NewBuffer(jsonStr))
-	return r.Do()
+	return r.do()
 }
 
 func (r *Request) Delete(originUrl string) error {
@@ -191,5 +191,31 @@ func (r *Request) Delete(originUrl string) error {
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
-	return r.Do()
+	return r.do()
+}
+
+var defaultReq = NewRequest(DefaultConfig)
+
+func Session() *Request {
+	return NewSession(DefaultConfig)
+}
+
+func Get(originUrl string, params map[string]string) error {
+	return defaultReq.Get(originUrl, params)
+}
+
+func Post(originUrl string, data map[string]interface{}) error {
+	return defaultReq.Post(originUrl, data)
+}
+
+func PostForm(originUrl string, data map[string]string) error {
+	return defaultReq.PostForm(originUrl, data)
+}
+
+func Put(originUrl string, data map[string]interface{}) error {
+	return defaultReq.Put(originUrl, data)
+}
+
+func Delete(originUrl string) error {
+	return defaultReq.Delete(originUrl)
 }
