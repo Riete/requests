@@ -200,22 +200,22 @@ func Session() *Request {
 	return NewSession(DefaultConfig)
 }
 
-func Get(originUrl string, params map[string]string) error {
-	return defaultReq.Get(originUrl, params)
+func Get(originUrl string, params map[string]string) (*Request, error) {
+	return defaultReq, defaultReq.Get(originUrl, params)
 }
 
-func Post(originUrl string, data map[string]interface{}) error {
-	return defaultReq.Post(originUrl, data)
+func Post(originUrl string, data map[string]interface{}) (*Request, error) {
+	return defaultReq, defaultReq.Post(originUrl, data)
 }
 
-func PostForm(originUrl string, data map[string]string) error {
-	return defaultReq.PostForm(originUrl, data)
+func PostForm(originUrl string, data map[string]string) (*Request, error) {
+	return defaultReq, defaultReq.PostForm(originUrl, data)
 }
 
-func Put(originUrl string, data map[string]interface{}) error {
-	return defaultReq.Put(originUrl, data)
+func Put(originUrl string, data map[string]interface{}) (*Request, error) {
+	return defaultReq, defaultReq.Put(originUrl, data)
 }
 
-func Delete(originUrl string) error {
-	return defaultReq.Delete(originUrl)
+func Delete(originUrl string) (*Request, error) {
+	return defaultReq, defaultReq.Delete(originUrl)
 }
