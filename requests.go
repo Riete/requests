@@ -200,6 +200,7 @@ func (r *Request) Download(filePath, originUrl string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	r.Req.Method = HttpGet
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
