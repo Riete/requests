@@ -29,7 +29,7 @@ type Request struct {
 	Req        *http.Request
 	Client     *http.Client
 	Resp       *http.Response
-	Content    string
+	Content    []byte
 	StatusCode int
 	Status     string
 }
@@ -127,12 +127,8 @@ func (r *Request) do() error {
 	r.StatusCode = resp.StatusCode
 	r.Status = resp.Status
 	defer r.Resp.Body.Close()
-	body, err := ioutil.ReadAll(r.Resp.Body)
-	if err != nil {
-		return err
-	}
-	r.Content = string(body)
-	return nil
+	r.Content, err = ioutil.ReadAll(r.Resp.Body)
+	return err
 }
 
 func (r *Request) Get(originUrl string, params map[string]string) error {
