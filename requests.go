@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -211,6 +212,10 @@ func (r *Request) Download(filePath, originUrl string) error {
 	defer r.Resp.Body.Close()
 	_, err = io.Copy(f, r.Resp.Body)
 	return err
+}
+
+func (r Request) ContentToString() string {
+	return *(*string)(unsafe.Pointer(&r.Content))
 }
 
 var defaultReq = NewRequest(DefaultConfig)
