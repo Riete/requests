@@ -42,8 +42,6 @@ type Config struct {
 	Timeout       time.Duration
 }
 
-var DefaultConfig = &Config{Timeout: 10 * time.Second}
-
 func NewRequest(config *Config) *Request {
 	r := &Request{}
 	r.Client = &http.Client{}
@@ -60,9 +58,10 @@ func NewSession(config *Config) *Request {
 
 func (r *Request) init(config *Config) {
 	if config == nil {
-		config = DefaultConfig
+		config = &Config{Timeout: 10 * time.Second}
 	}
 	r.SetHeader(config.Headers)
+	r.SetProxy(config.Proxy)
 	r.SetTimeout(config.Timeout)
 	if config.SkipTLSVerify {
 		r.SkipTLSVerify()
@@ -218,10 +217,10 @@ func (r Request) ContentToString() string {
 	return *(*string)(unsafe.Pointer(&r.Content))
 }
 
-var defaultReq = NewRequest(DefaultConfig)
+var defaultReq = NewRequest(nil)
 
 func Session() *Request {
-	return NewSession(DefaultConfig)
+	return NewSession(nil)
 }
 
 func Get(originUrl string, params map[string]string) (*Request, error) {

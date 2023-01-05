@@ -7,7 +7,7 @@ import (
 func TestRequest(t *testing.T) {
 	// request
 	url := "http://x.x.x.x"
-	r := NewRequest(DefaultConfig)
+	r := NewRequest(nil)
 	r.Get(url, nil)
 	r.Get(url, map[string]string{"a": "1", "b": "2"})
 	r.Post(url, map[string]interface{}{"a": "1", "b": "2"})
@@ -16,7 +16,7 @@ func TestRequest(t *testing.T) {
 	r.Delete(url)
 	// session
 	loginUrl := "http://x.x.x.x/login"
-	s := NewSession(DefaultConfig)
+	s := NewSession(nil)
 	s.Post(loginUrl, map[string]interface{}{"user": "username", "password": "password"})
 	s.Get(url, nil)
 	s.Get(url, map[string]string{"a": "1", "b": "2"})
