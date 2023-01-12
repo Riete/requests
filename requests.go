@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/juju/ratelimit"
 )
 
 const (
@@ -213,6 +215,33 @@ func (r *Request) Download(filePath, originUrl string) error {
 	return err
 }
 
+func (r *Request) DownloadWithRateLimit(filePath, originUrl string, rate int64) error {
+	if rate == 0 {
+		return r.Download(filePath, originUrl)
+	}
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
+	r.Req.Method = HttpGet
+	if err := r.ParseUrl(originUrl); err != nil {
+		return err
+	}
+	resp, err := r.Client.Do(r.Req)
+	if err != nil {
+		return err
+	}
+	r.Resp = resp
+	r.StatusCode = resp.StatusCode
+	r.Status = resp.Status
+	defer r.Resp.Body.Close()
+	w := ratelimit.Writer(f, bucket)
+	_, err = io.Copy(w, r.Resp.Body)
+	return err
+}
+
 func (r Request) ContentToString() string {
 	return *(*string)(unsafe.Pointer(&r.Content))
 }
@@ -245,4 +274,8 @@ func Delete(originUrl string) (*Request, error) {
 
 func Download(filepath, originUrl string) (*Request, error) {
 	return defaultReq, defaultReq.Download(filepath, originUrl)
+}
+
+func DownloadWithRateLimit(filepath, originUrl string, rate int64) (*Request, error) {
+	return defaultReq, defaultReq.DownloadWithRateLimit(filepath, originUrl, rate)
 }
