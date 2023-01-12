@@ -193,12 +193,7 @@ func (r *Request) Delete(originUrl string) error {
 	return r.do()
 }
 
-func (r *Request) Download(filePath, originUrl string) error {
-	f, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func (r *Request) download(originUrl string, w io.Writer) error {
 	r.Req.Method = HttpGet
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
@@ -211,12 +206,21 @@ func (r *Request) Download(filePath, originUrl string) error {
 	r.StatusCode = resp.StatusCode
 	r.Status = resp.Status
 	defer r.Resp.Body.Close()
-	_, err = io.Copy(f, r.Resp.Body)
+	_, err = io.Copy(w, r.Resp.Body)
 	return err
 }
 
+func (r *Request) Download(filePath, originUrl string) error {
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return r.download(originUrl, f)
+}
+
 func (r *Request) DownloadWithRateLimit(filePath, originUrl string, rate int64) error {
-	if rate == 0 {
+	if rate <= 0 {
 		return r.Download(filePath, originUrl)
 	}
 	f, err := os.Create(filePath)
@@ -225,21 +229,8 @@ func (r *Request) DownloadWithRateLimit(filePath, originUrl string, rate int64) 
 	}
 	defer f.Close()
 	bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
-	r.Req.Method = HttpGet
-	if err := r.ParseUrl(originUrl); err != nil {
-		return err
-	}
-	resp, err := r.Client.Do(r.Req)
-	if err != nil {
-		return err
-	}
-	r.Resp = resp
-	r.StatusCode = resp.StatusCode
-	r.Status = resp.Status
-	defer r.Resp.Body.Close()
 	w := ratelimit.Writer(f, bucket)
-	_, err = io.Copy(w, r.Resp.Body)
-	return err
+	return r.download(originUrl, w)
 }
 
 func (r Request) ContentToString() string {
