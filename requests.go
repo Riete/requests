@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -129,7 +128,7 @@ func (r *Request) do() error {
 	r.StatusCode = resp.StatusCode
 	r.Status = resp.Status
 	defer r.Resp.Body.Close()
-	r.Content, err = ioutil.ReadAll(r.Resp.Body)
+	r.Content, err = io.ReadAll(r.Resp.Body)
 	return err
 }
 
@@ -156,7 +155,7 @@ func (r *Request) Post(originUrl string, data map[string]interface{}) error {
 		return err
 	}
 	r.Req.Header.Set("Content-Type", ContentTypeJson)
-	r.Req.Body = ioutil.NopCloser(bytes.NewBuffer(jsonStr))
+	r.Req.Body = io.NopCloser(bytes.NewBuffer(jsonStr))
 	return r.do()
 }
 
@@ -170,7 +169,7 @@ func (r *Request) PostForm(originUrl string, data map[string]string) error {
 	for k, v := range data {
 		formData.Add(k, v)
 	}
-	r.Req.Body = ioutil.NopCloser(strings.NewReader(formData.Encode()))
+	r.Req.Body = io.NopCloser(strings.NewReader(formData.Encode()))
 	return r.do()
 }
 
@@ -181,7 +180,7 @@ func (r *Request) Put(originUrl string, data map[string]interface{}) error {
 	}
 	jsonStr, _ := json.Marshal(data)
 	r.Req.Header.Set("Content-Type", ContentTypeJson)
-	r.Req.Body = ioutil.NopCloser(bytes.NewBuffer(jsonStr))
+	r.Req.Body = io.NopCloser(bytes.NewBuffer(jsonStr))
 	return r.do()
 }
 
