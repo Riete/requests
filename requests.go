@@ -27,6 +27,44 @@ const (
 	HttpDelete      string = "DELETE"
 )
 
+type Option func(*Request)
+
+func WithTimeout(t time.Duration) Option {
+	return func(r *Request) {
+		r.SetTimeout(t)
+	}
+}
+
+func WithHeader(header map[string]string) Option {
+	return func(r *Request) {
+		r.SetHeader(header)
+	}
+}
+
+func WithProxy(proxy map[string]string) Option {
+	return func(r *Request) {
+		r.SetProxy(proxy)
+	}
+}
+
+func WithSkipTLSVerify() Option {
+	return func(r *Request) {
+		r.SkipTLSVerify()
+	}
+}
+
+func WithBasicAuth(username, password string) Option {
+	return func(r *Request) {
+		r.SetBasicAuth(username, password)
+	}
+}
+
+func WithBearerTokenAuth(token string) Option {
+	return func(r *Request) {
+		r.SetBearerTokenAuth(token)
+	}
+}
+
 type Request struct {
 	Req        *http.Request
 	Client     *http.Client
@@ -36,37 +74,19 @@ type Request struct {
 	Status     string
 }
 
-type Config struct {
-	Headers       map[string]string
-	Proxy         map[string]string
-	SkipTLSVerify bool
-	Timeout       time.Duration
-}
-
-func NewRequest(config *Config) *Request {
-	r := &Request{}
-	r.Client = &http.Client{}
+func NewRequest(options ...Option) *Request {
+	r := &Request{Client: &http.Client{}}
 	r.Req, _ = http.NewRequest("", "", nil)
-	r.init(config)
+	for _, option := range options {
+		option(r)
+	}
 	return r
 }
 
-func NewSession(config *Config) *Request {
-	r := NewRequest(config)
+func NewSession(options ...Option) *Request {
+	r := NewRequest(options...)
 	r.Client.Jar, _ = cookiejar.New(nil)
 	return r
-}
-
-func (r *Request) init(config *Config) {
-	if config == nil {
-		config = &Config{Timeout: 10 * time.Second}
-	}
-	r.SetHeader(config.Headers)
-	r.SetProxy(config.Proxy)
-	r.SetTimeout(config.Timeout)
-	if config.SkipTLSVerify {
-		r.SkipTLSVerify()
-	}
 }
 
 func (r *Request) SetHeader(headers map[string]string) {
@@ -104,7 +124,7 @@ func (r *Request) SkipTLSVerify() {
 	r.Client.Transport = tr
 }
 
-func (r Request) SetProxy(proxy map[string]string) {
+func (r *Request) SetProxy(proxy map[string]string) {
 	for k, v := range proxy {
 		_ = os.Setenv(k, v)
 	}
@@ -234,38 +254,4 @@ func (r *Request) DownloadWithRateLimit(filePath, originUrl string, rate int64) 
 
 func (r Request) ContentToString() string {
 	return *(*string)(unsafe.Pointer(&r.Content))
-}
-
-var defaultReq = NewRequest(nil)
-
-func Session() *Request {
-	return NewSession(nil)
-}
-
-func Get(originUrl string, params map[string]string) (*Request, error) {
-	return defaultReq, defaultReq.Get(originUrl, params)
-}
-
-func Post(originUrl string, data map[string]interface{}) (*Request, error) {
-	return defaultReq, defaultReq.Post(originUrl, data)
-}
-
-func PostForm(originUrl string, data map[string]string) (*Request, error) {
-	return defaultReq, defaultReq.PostForm(originUrl, data)
-}
-
-func Put(originUrl string, data map[string]interface{}) (*Request, error) {
-	return defaultReq, defaultReq.Put(originUrl, data)
-}
-
-func Delete(originUrl string) (*Request, error) {
-	return defaultReq, defaultReq.Delete(originUrl)
-}
-
-func Download(filepath, originUrl string) (*Request, error) {
-	return defaultReq, defaultReq.Download(filepath, originUrl)
-}
-
-func DownloadWithRateLimit(filepath, originUrl string, rate int64) (*Request, error) {
-	return defaultReq, defaultReq.DownloadWithRateLimit(filepath, originUrl, rate)
 }
