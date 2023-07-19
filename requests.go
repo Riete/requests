@@ -204,11 +204,14 @@ func (r *Request) Put(originUrl string, data map[string]interface{}) error {
 	return r.do()
 }
 
-func (r *Request) Delete(originUrl string) error {
+func (r *Request) Delete(originUrl string, data map[string]interface{}) error {
 	r.Req.Method = HttpDelete
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
+	jsonStr, _ := json.Marshal(data)
+	r.Req.Header.Set("Content-Type", ContentTypeJson)
+	r.Req.Body = io.NopCloser(bytes.NewBuffer(jsonStr))
 	return r.do()
 }
 

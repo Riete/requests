@@ -4,28 +4,28 @@ Go HTTP Client Library
 
 ## Usage
 ```
-// Default Request
-url := "http://x.x.x.x"
-requests.Get(url, nil)
-requests.Get(url, map[string]string{"a": "1", "b": "2"})
-requests.Post(url, map[string]interface{}{"a": "1", "b": "2"})
-requests.PostForm(url, map[string]string{"a": "1", "b": "2"})
-requests.Put(url, map[string]interface{}{"a": "1", "b": "2"})
-requests.Delete(url)
-
-// Default Session
-loginUrl := "http://x.x.x.x/login"
-s := requests.Session()
-s.Post(loginUrl, map[string]interface{}{"user": "username", "password": "password"})
-s.Get(url, nil)
-s.Get(url, map[string]string{"a": "1", "b": "2"})
-s.Post(url, map[string]interface{}{"a": "1", "b": "2"})
-s.PostForm(url, map[string]string{"a": "1", "b": "2"})
-s.Put(url, map[string]interface{}{"a": "1", "b": "2"})
-s.Delete(url)
-
 // New Request
-r := NewRequest(DefaultConfig)
+r := NewRequest(WithTimout(time.Second))
+
 // New Session
-s := NewSession(DefaultConfig)
+r := NewSession(WithTimout(time.Second))
+
+// do http method
+r.Get(url, map[string]string{})
+r.Post(url, map[string]interface{}{})
+r.Post(url, map[string]interface{}{})
+r.PostFrom(url, map[string]string{})
+r.Put(url, map[string]interface{}{})
+r.Delete(url, map[string]interface{}{})
+
+// download
+r.Download(filePath, originUrl)
+r.DownloadWithRateLimit(filePath, originUrl, rate)
+
+// response
+r.Content()
+r.ContentToString()
+r.Status
+r.StatusCode
+r.Resp // raw http.Response
 ```
