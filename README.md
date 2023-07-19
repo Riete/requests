@@ -22,10 +22,12 @@ r.Delete(url, map[string]interface{}{})
 r.Download(filePath, originUrl)
 r.DownloadWithRateLimit(filePath, originUrl, rate)
 
+// upload
+r.Upload(originUrl, map[string]string{}, filepath1, filepath2 ...)
+
 // response
 r.Content()
 r.ContentToString()
-r.Status
-r.StatusCode
-r.Resp // raw http.Response
+r.Status() // status code, status
+r.Resp() // raw http.Response
 ```
