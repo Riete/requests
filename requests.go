@@ -135,6 +135,10 @@ func (r *Request) do() error {
 	return err
 }
 
+func (r Request) Content() []byte {
+	return r.content
+}
+
 func (r Request) ContentToString() string {
 	return *(*string)(unsafe.Pointer(&r.content))
 }
