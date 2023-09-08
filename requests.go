@@ -93,6 +93,12 @@ func WithBearerTokenAuth(token string) Option {
 	}
 }
 
+func WithTransport(transport *http.Transport) Option {
+	return func(r *Request) {
+		r.SetTransport(transport)
+	}
+}
+
 type Request struct {
 	req     *http.Request
 	client  *http.Client
