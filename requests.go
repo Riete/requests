@@ -18,6 +18,7 @@ import (
 	"unsafe"
 
 	"github.com/juju/ratelimit"
+	"golang.org/x/net/http/httpproxy"
 )
 
 const (
@@ -30,6 +31,25 @@ const (
 )
 
 type Option func(*Request)
+
+func ProxyFromEnvironment(req *http.Request) (*url.URL, error) {
+	return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
+}
+
+func DefaultTransport() *http.Transport {
+	return &http.Transport{
+		Proxy: ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     false,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+}
 
 func WithTimeout(t time.Duration) Option {
 	return func(r *Request) {
@@ -46,6 +66,12 @@ func WithHeader(header map[string]string) Option {
 func WithProxy(proxy map[string]string) Option {
 	return func(r *Request) {
 		r.SetProxy(proxy)
+	}
+}
+
+func WithUnSetProxy() Option {
+	return func(r *Request) {
+		r.UnSetProxy()
 	}
 }
 
@@ -92,21 +118,22 @@ func (r *Request) SetTimeout(t time.Duration) {
 	r.client.Timeout = t
 }
 
+func (r *Request) SetTransport(transport *http.Transport) {
+	r.client.Transport = transport
+}
+
 func (r *Request) SkipTLSVerify() {
-	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-	}
-	r.client.Transport = tr
+	transport := DefaultTransport()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	r.SetTransport(transport)
+}
+
+func (r *Request) UnSetProxy() {
+	_ = os.Setenv("HTTP_PROXY", "")
+	_ = os.Setenv("http_proxy", "")
+	_ = os.Setenv("HTTPS_PROXY", "")
+	_ = os.Setenv("https_proxy", "")
+
 }
 
 func (r *Request) SetProxy(proxy map[string]string) {
@@ -306,6 +333,7 @@ func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...
 
 func NewRequest(options ...Option) *Request {
 	r := &Request{client: &http.Client{}}
+	r.client.Transport = DefaultTransport()
 	r.req, _ = http.NewRequest("", "", nil)
 	for _, option := range options {
 		option(r)

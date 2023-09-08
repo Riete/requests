@@ -1,3 +1,13 @@
 # github.com/juju/ratelimit v1.0.2
 ## explicit
 github.com/juju/ratelimit
+# golang.org/x/net v0.15.0
+## explicit; go 1.17
+golang.org/x/net/http/httpproxy
+golang.org/x/net/idna
+# golang.org/x/text v0.13.0
+## explicit; go 1.17
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
