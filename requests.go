@@ -71,9 +71,9 @@ func WithProxy(proxy map[string]string) Option {
 	}
 }
 
-func WithCancelProxy() Option {
+func WithUnsetProxy() Option {
 	return func(r *Request) {
-		r.CancelProxy()
+		r.UnsetProxy()
 	}
 }
 
@@ -136,12 +136,11 @@ func (r *Request) SkipTLSVerify() {
 	r.SetTransport(transport)
 }
 
-func (r *Request) CancelProxy() {
-	_ = os.Setenv("HTTP_PROXY", "")
-	_ = os.Setenv("http_proxy", "")
-	_ = os.Setenv("HTTPS_PROXY", "")
-	_ = os.Setenv("https_proxy", "")
-
+func (r *Request) UnsetProxy() {
+	_ = os.Unsetenv("HTTP_PROXY")
+	_ = os.Unsetenv("http_proxy")
+	_ = os.Unsetenv("HTTPS_PROXY")
+	_ = os.Unsetenv("https_proxy")
 }
 
 func (r *Request) SetProxy(proxy map[string]string) {
