@@ -30,8 +30,6 @@ const (
 	HttpDelete      string = "DELETE"
 )
 
-type Option func(*Request)
-
 func ProxyFromEnvironment(req *http.Request) (*url.URL, error) {
 	return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
 }
@@ -51,15 +49,19 @@ func DefaultTransport() *http.Transport {
 	}
 }
 
+type Option func(*Request)
+
 func WithTimeout(t time.Duration) Option {
 	return func(r *Request) {
 		r.SetTimeout(t)
 	}
 }
 
-func WithHeader(header map[string]string) Option {
+func WithHeader(headers ...map[string]string) Option {
 	return func(r *Request) {
-		r.SetHeader(header)
+		for _, header := range headers {
+			r.SetHeader(header)
+		}
 	}
 }
 
@@ -69,9 +71,9 @@ func WithProxy(proxy map[string]string) Option {
 	}
 }
 
-func WithUnSetProxy() Option {
+func WithCancelProxy() Option {
 	return func(r *Request) {
-		r.UnSetProxy()
+		r.CancelProxy()
 	}
 }
 
@@ -106,8 +108,8 @@ type Request struct {
 	content []byte
 }
 
-func (r *Request) SetHeader(headers map[string]string) {
-	for k, v := range headers {
+func (r *Request) SetHeader(header map[string]string) {
+	for k, v := range header {
 		r.req.Header.Set(k, v)
 	}
 }
@@ -134,7 +136,7 @@ func (r *Request) SkipTLSVerify() {
 	r.SetTransport(transport)
 }
 
-func (r *Request) UnSetProxy() {
+func (r *Request) CancelProxy() {
 	_ = os.Setenv("HTTP_PROXY", "")
 	_ = os.Setenv("http_proxy", "")
 	_ = os.Setenv("HTTPS_PROXY", "")
