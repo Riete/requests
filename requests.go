@@ -71,6 +71,12 @@ func WithProxy(proxy map[string]string) Option {
 	}
 }
 
+func WithProxyFunc(f func(*http.Request) (*url.URL, error)) Option {
+	return func(r *Request) {
+		r.client.Transport.(*http.Transport).Proxy = f
+	}
+}
+
 func WithUnsetProxy() Option {
 	return func(r *Request) {
 		r.UnsetProxy()
@@ -131,9 +137,7 @@ func (r *Request) SetTransport(transport *http.Transport) {
 }
 
 func (r *Request) SkipTLSVerify() {
-	transport := DefaultTransport()
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	r.SetTransport(transport)
+	r.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 }
 
 func (r *Request) UnsetProxy() {
