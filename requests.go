@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -22,89 +21,50 @@ import (
 )
 
 const (
-	ContentTypeJson string = "application/json;charset=utf-8"
-	ContentTypeForm string = "application/x-www-form-urlencoded"
-	HttpGet         string = "GET"
-	HttpPost        string = "POST"
-	HttpPut         string = "PUT"
-	HttpDelete      string = "DELETE"
+	ContentTypeJson = "application/json;charset=utf-8"
+	ContentTypeForm = "application/x-www-form-urlencoded"
+	ProxyHttp       = "http"
+	ProxySocks      = "socks5"
 )
 
+type Proxy map[string]string
+
+func newProxy(prefix, proxy string) Proxy {
+	p := prefix + "://" + proxy
+	return Proxy{"http_proxy": p, "https_proxy": p}
+}
+
+func NewHttpProxy(proxy string) Proxy {
+	return newProxy(ProxyHttp, proxy)
+}
+
+func NewSocksProxy(proxy string) Proxy {
+	return newProxy(ProxySocks, proxy)
+}
+
+func newProxyWithAuth(prefix, proxy, username, password string) Proxy {
+	auth := url.QueryEscape(username) + ":" + url.QueryEscape(password)
+	p := prefix + "://" + auth + "@" + proxy
+	return Proxy{"http_proxy": p, "https_proxy": p}
+}
+
+func NewHttpProxyWithAuth(proxy, username, password string) Proxy {
+	return newProxyWithAuth(ProxyHttp, proxy, username, password)
+}
+
+func NewSocksProxyWithAuth(proxy, username, password string) Proxy {
+	return newProxyWithAuth(ProxySocks, proxy, username, password)
+}
+
+// ProxyFromEnvironment read proxy form env for every request
+// http.ProxyFromEnvironment read only once
 func ProxyFromEnvironment(req *http.Request) (*url.URL, error) {
 	return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
 }
 
+// DefaultTransport return clone of http.DefaultTransport
 func DefaultTransport() *http.Transport {
-	return &http.Transport{
-		Proxy: ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     false,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-}
-
-type Option func(*Request)
-
-func WithTimeout(t time.Duration) Option {
-	return func(r *Request) {
-		r.SetTimeout(t)
-	}
-}
-
-func WithHeader(headers ...map[string]string) Option {
-	return func(r *Request) {
-		for _, header := range headers {
-			r.SetHeader(header)
-		}
-	}
-}
-
-func WithProxy(proxy map[string]string) Option {
-	return func(r *Request) {
-		r.SetProxy(proxy)
-	}
-}
-
-func WithProxyFunc(f func(*http.Request) (*url.URL, error)) Option {
-	return func(r *Request) {
-		r.client.Transport.(*http.Transport).Proxy = f
-	}
-}
-
-func WithUnsetProxy() Option {
-	return func(r *Request) {
-		r.UnsetProxy()
-	}
-}
-
-func WithSkipTLSVerify() Option {
-	return func(r *Request) {
-		r.SkipTLSVerify()
-	}
-}
-
-func WithBasicAuth(username, password string) Option {
-	return func(r *Request) {
-		r.SetBasicAuth(username, password)
-	}
-}
-
-func WithBearerTokenAuth(token string) Option {
-	return func(r *Request) {
-		r.SetBearerTokenAuth(token)
-	}
-}
-
-func WithTransport(transport *http.Transport) Option {
-	return func(r *Request) {
-		r.SetTransport(transport)
-	}
+	return http.DefaultTransport.(*http.Transport).Clone()
 }
 
 type Request struct {
@@ -132,8 +92,8 @@ func (r *Request) SetTimeout(t time.Duration) {
 	r.client.Timeout = t
 }
 
-func (r *Request) SetTransport(transport *http.Transport) {
-	r.client.Transport = transport
+func (r *Request) SetTransport(rt http.RoundTripper) {
+	r.client.Transport = rt
 }
 
 func (r *Request) SkipTLSVerify() {
@@ -147,7 +107,7 @@ func (r *Request) UnsetProxy() {
 	_ = os.Unsetenv("https_proxy")
 }
 
-func (r *Request) SetProxy(proxy map[string]string) {
+func (r *Request) SetProxy(proxy Proxy) {
 	for k, v := range proxy {
 		_ = os.Setenv(k, v)
 	}
@@ -194,7 +154,7 @@ func (r Request) Request() *http.Request {
 }
 
 func (r *Request) Get(originUrl string, params map[string]string) error {
-	r.req.Method = HttpGet
+	r.req.Method = http.MethodGet
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -207,7 +167,7 @@ func (r *Request) Get(originUrl string, params map[string]string) error {
 }
 
 func (r *Request) Post(originUrl string, data map[string]interface{}) error {
-	r.req.Method = HttpPost
+	r.req.Method = http.MethodPost
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -221,7 +181,7 @@ func (r *Request) Post(originUrl string, data map[string]interface{}) error {
 }
 
 func (r *Request) PostForm(originUrl string, data map[string]string) error {
-	r.req.Method = HttpPost
+	r.req.Method = http.MethodPost
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -235,7 +195,7 @@ func (r *Request) PostForm(originUrl string, data map[string]string) error {
 }
 
 func (r *Request) Put(originUrl string, data map[string]interface{}) error {
-	r.req.Method = HttpPut
+	r.req.Method = http.MethodPut
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -246,7 +206,7 @@ func (r *Request) Put(originUrl string, data map[string]interface{}) error {
 }
 
 func (r *Request) Delete(originUrl string, data map[string]interface{}) error {
-	r.req.Method = HttpDelete
+	r.req.Method = http.MethodDelete
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -257,7 +217,7 @@ func (r *Request) Delete(originUrl string, data map[string]interface{}) error {
 }
 
 func (r *Request) download(originUrl string, w io.Writer) error {
-	r.req.Method = HttpGet
+	r.req.Method = http.MethodGet
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -295,7 +255,7 @@ func (r *Request) DownloadWithRateLimit(filePath, originUrl string, rate int64) 
 }
 
 func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...string) error {
-	r.req.Method = HttpPost
+	r.req.Method = http.MethodPost
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
 	}
@@ -343,8 +303,7 @@ func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...
 }
 
 func NewRequest(options ...Option) *Request {
-	r := &Request{client: &http.Client{}}
-	r.client.Transport = DefaultTransport()
+	r := &Request{client: &http.Client{Transport: DefaultTransport()}}
 	r.req, _ = http.NewRequest("", "", nil)
 	for _, option := range options {
 		option(r)
