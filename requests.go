@@ -62,10 +62,10 @@ func ProxyFromEnvironment(req *http.Request) (*url.URL, error) {
 	return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
 }
 
-// DefaultTransport return clone of http.DefaultTransport
-func DefaultTransport() *http.Transport {
-	return http.DefaultTransport.(*http.Transport).Clone()
-}
+// DefaultTransport is clone of http.DefaultTransport
+var DefaultTransport = http.DefaultTransport.(*http.Transport).Clone()
+
+var DefaultClient = &http.Client{Transport: DefaultTransport}
 
 type Request struct {
 	req     *http.Request
@@ -303,7 +303,7 @@ func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...
 }
 
 func NewRequest(options ...Option) *Request {
-	r := &Request{client: &http.Client{Transport: DefaultTransport()}}
+	r := &Request{client: DefaultClient}
 	r.req, _ = http.NewRequest("", "", nil)
 	for _, option := range options {
 		option(r)
