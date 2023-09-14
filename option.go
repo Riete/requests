@@ -63,3 +63,21 @@ func WithTransport(tr http.RoundTripper) Option {
 		r.SetTransport(tr)
 	}
 }
+
+func WithDefaultTransport() Option {
+	return func(r *Request) {
+		r.SetTransport(NewDefaultTransport())
+	}
+}
+
+func WithClient(client *http.Client) Option {
+	return func(r *Request) {
+		r.SetClient(client)
+	}
+}
+
+func WithDefaultClient() Option {
+	return func(r *Request) {
+		r.SetClient(NewDefaultClient())
+	}
+}

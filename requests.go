@@ -67,6 +67,14 @@ var DefaultTransport = http.DefaultTransport.(*http.Transport).Clone()
 
 var DefaultClient = &http.Client{Transport: DefaultTransport}
 
+func NewDefaultTransport() *http.Transport {
+	return http.DefaultTransport.(*http.Transport).Clone()
+}
+
+func NewDefaultClient() *http.Client {
+	return &http.Client{Transport: NewDefaultTransport()}
+}
+
 type Request struct {
 	req     *http.Request
 	client  *http.Client
@@ -94,6 +102,10 @@ func (r *Request) SetTimeout(t time.Duration) {
 
 func (r *Request) SetTransport(rt http.RoundTripper) {
 	r.client.Transport = rt
+}
+
+func (r *Request) SetClient(client *http.Client) {
+	r.client = client
 }
 
 func (r *Request) SkipTLSVerify() {
