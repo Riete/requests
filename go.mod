@@ -1,6 +1,6 @@
 module github.com/riete/requests
 
-go 1.21.1
+go 1.21
 
 require github.com/juju/ratelimit v1.0.2
 
