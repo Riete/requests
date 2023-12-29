@@ -17,62 +17,25 @@ import (
 	"unsafe"
 
 	"github.com/juju/ratelimit"
-	"golang.org/x/net/http/httpproxy"
 )
 
 const (
 	ContentTypeJson = "application/json;charset=utf-8"
 	ContentTypeForm = "application/x-www-form-urlencoded"
-	ProxyHttp       = "http"
-	ProxySocks      = "socks5"
 )
 
-type Proxy map[string]string
+var (
+	DefaultTransport = NewTransport()
+	DefaultClient    = NewClient()
+)
 
-func newProxy(prefix, proxy string) Proxy {
-	p := prefix + "://" + proxy
-	return Proxy{"http_proxy": p, "https_proxy": p}
-}
-
-func NewHttpProxy(proxy string) Proxy {
-	return newProxy(ProxyHttp, proxy)
-}
-
-func NewSocksProxy(proxy string) Proxy {
-	return newProxy(ProxySocks, proxy)
-}
-
-func newProxyWithAuth(prefix, proxy, username, password string) Proxy {
-	auth := url.QueryEscape(username) + ":" + url.QueryEscape(password)
-	p := prefix + "://" + auth + "@" + proxy
-	return Proxy{"http_proxy": p, "https_proxy": p}
-}
-
-func NewHttpProxyWithAuth(proxy, username, password string) Proxy {
-	return newProxyWithAuth(ProxyHttp, proxy, username, password)
-}
-
-func NewSocksProxyWithAuth(proxy, username, password string) Proxy {
-	return newProxyWithAuth(ProxySocks, proxy, username, password)
-}
-
-// ProxyFromEnvironment read proxy form env for every request
-// http.ProxyFromEnvironment read only once
-func ProxyFromEnvironment(req *http.Request) (*url.URL, error) {
-	return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
-}
-
-// DefaultTransport is clone of http.DefaultTransport
-var DefaultTransport = http.DefaultTransport.(*http.Transport).Clone()
-
-var DefaultClient = &http.Client{Transport: DefaultTransport}
-
-func NewDefaultTransport() *http.Transport {
+// NewTransport is clone of http.DefaultTransport
+func NewTransport() *http.Transport {
 	return http.DefaultTransport.(*http.Transport).Clone()
 }
 
-func NewDefaultClient() *http.Client {
-	return &http.Client{Transport: NewDefaultTransport()}
+func NewClient() *http.Client {
+	return &http.Client{Transport: NewTransport()}
 }
 
 type Request struct {
@@ -108,7 +71,7 @@ func (r *Request) SetClient(client *http.Client) {
 	r.client = client
 }
 
-func (r *Request) SkipTLSVerify() {
+func (r *Request) SetSkipTLS() {
 	r.client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 }
 
@@ -117,12 +80,22 @@ func (r *Request) UnsetProxy() {
 	_ = os.Unsetenv("http_proxy")
 	_ = os.Unsetenv("HTTPS_PROXY")
 	_ = os.Unsetenv("https_proxy")
+	r.client.Transport.(*http.Transport).Proxy = nil
 }
 
-func (r *Request) SetProxy(proxy Proxy) {
+func (r *Request) SetProxyEnv(proxy Proxy) {
 	for k, v := range proxy {
 		_ = os.Setenv(k, v)
 	}
+}
+
+func (r *Request) SetProxyFunc(f func(*http.Request) (*url.URL, error)) {
+	r.client.Transport.(*http.Transport).Proxy = f
+
+}
+
+func (r *Request) SetProxyUrl(proxy *url.URL) {
+	r.SetProxyFunc(http.ProxyURL(proxy))
 }
 
 func (r *Request) ParseUrl(originUrl string) error {
@@ -315,7 +288,7 @@ func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...
 }
 
 func NewRequest(options ...Option) *Request {
-	r := &Request{client: DefaultClient}
+	r := &Request{client: NewClient()}
 	r.req, _ = http.NewRequest("", "", nil)
 	for _, option := range options {
 		option(r)

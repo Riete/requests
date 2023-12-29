@@ -22,15 +22,21 @@ func WithHeader(headers ...map[string]string) Option {
 	}
 }
 
-func WithProxy(proxy Proxy) Option {
+func WithProxyEnv(proxy Proxy) Option {
 	return func(r *Request) {
-		r.SetProxy(proxy)
+		r.SetProxyEnv(proxy)
+	}
+}
+
+func WithProxyUrl(proxy *url.URL) Option {
+	return func(r *Request) {
+		r.SetProxyUrl(proxy)
 	}
 }
 
 func WithProxyFunc(f func(*http.Request) (*url.URL, error)) Option {
 	return func(r *Request) {
-		r.client.Transport.(*http.Transport).Proxy = f
+		r.SetProxyFunc(f)
 	}
 }
 
@@ -40,9 +46,9 @@ func WithUnsetProxy() Option {
 	}
 }
 
-func WithSkipTLSVerify() Option {
+func WithSkipTLS() Option {
 	return func(r *Request) {
-		r.SkipTLSVerify()
+		r.SetSkipTLS()
 	}
 }
 
@@ -66,7 +72,7 @@ func WithTransport(tr http.RoundTripper) Option {
 
 func WithDefaultTransport() Option {
 	return func(r *Request) {
-		r.SetTransport(NewDefaultTransport())
+		r.SetTransport(DefaultTransport)
 	}
 }
 
@@ -78,6 +84,6 @@ func WithClient(client *http.Client) Option {
 
 func WithDefaultClient() Option {
 	return func(r *Request) {
-		r.SetClient(NewDefaultClient())
+		r.SetClient(DefaultClient)
 	}
 }
