@@ -201,7 +201,7 @@ func (r *Request) Delete(originUrl string, data map[string]interface{}) error {
 	return r.do()
 }
 
-func (r *Request) download(originUrl string, w io.Writer) error {
+func (r *Request) DownloadToWriter(originUrl string, w io.Writer) error {
 	r.req.Method = http.MethodGet
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
@@ -216,30 +216,22 @@ func (r *Request) download(originUrl string, w io.Writer) error {
 	return err
 }
 
-func (r *Request) Download(filePath, originUrl string) error {
+// Download rate is download speed per second, e.g. 1024 ==> 1KiB/s, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
+func (r *Request) Download(filePath, originUrl string, rate int64) error {
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return r.download(originUrl, f)
+	if rate > 0 {
+		bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
+		return r.DownloadToWriter(originUrl, ratelimit.Writer(f, bucket))
+	}
+	return r.DownloadToWriter(originUrl, f)
 }
 
-func (r *Request) DownloadWithRateLimit(filePath, originUrl string, rate int64) error {
-	if rate <= 0 {
-		return r.Download(filePath, originUrl)
-	}
-	f, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
-	w := ratelimit.Writer(f, bucket)
-	return r.download(originUrl, w)
-}
-
-func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...string) error {
+// Upload rate is upload speed per second, e.g. 1024 ==> 1KiB, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
+func (r *Request) Upload(originUrl string, data map[string]string, rate int64, filePaths ...string) error {
 	r.req.Method = http.MethodPost
 	if err := r.ParseUrl(originUrl); err != nil {
 		return err
@@ -284,6 +276,10 @@ func (r *Request) Upload(originUrl string, data map[string]string, filePaths ...
 
 	r.req.Header.Set("Content-Type", w.FormDataContentType())
 	r.req.Body = io.NopCloser(body)
+	if rate > 0 {
+		bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
+		r.req.Body = io.NopCloser(ratelimit.Reader(body, bucket))
+	}
 	return r.do()
 }
 
