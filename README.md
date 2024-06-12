@@ -13,12 +13,12 @@ r := NewSession(WithTimout(time.Second))
 // do http method
 r.Get(url, map[string]string{})
 r.Post(url, map[string]interface{}{})
-r.Post(url, map[string]interface{}{})
 r.PostFrom(url, map[string]string{})
 r.Put(url, map[string]interface{}{})
 r.Delete(url, map[string]interface{}{})
 
 // download
+r.DownloadToWriter(originUrl, io.Writer)
 r.Download(filePath, originUrl, rate)
 
 // upload
