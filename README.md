@@ -19,11 +19,10 @@ r.Put(url, map[string]interface{}{})
 r.Delete(url, map[string]interface{}{})
 
 // download
-r.Download(filePath, originUrl)
-r.DownloadWithRateLimit(filePath, originUrl, rate)
+r.Download(filePath, originUrl, rate)
 
 // upload
-r.Upload(originUrl, map[string]string{}, filepath1, filepath2 ...)
+r.Upload(originUrl, map[string]string{}, rate, filepath1, filepath2 ...)
 
 // response
 r.Content()
