@@ -283,6 +283,10 @@ func (r *Request) Upload(originUrl string, data map[string]string, rate int64, f
 	return r.do()
 }
 
+func (r *Request) CloseIdleConnections() {
+	r.client.CloseIdleConnections()
+}
+
 func NewRequest(options ...Option) *Request {
 	r := &Request{client: NewClient()}
 	r.req, _ = http.NewRequest("", "", nil)
