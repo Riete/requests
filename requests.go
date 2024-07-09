@@ -25,11 +25,13 @@ const (
 )
 
 var (
+	// DefaultTransport is clone of http.DefaultTransport
 	DefaultTransport = NewTransport()
-	DefaultClient    = NewClient()
+	// DefaultClient set Transport to DefaultTransport
+	DefaultClient = NewClient()
 )
 
-// NewTransport is clone of http.DefaultTransport
+// NewTransport return clone of http.DefaultTransport
 func NewTransport() *http.Transport {
 	return http.DefaultTransport.(*http.Transport).Clone()
 }
@@ -287,8 +289,9 @@ func (r *Request) CloseIdleConnections() {
 	r.client.CloseIdleConnections()
 }
 
+// NewRequest use DefaultClient to do http request, Option can be provided to set Request properties
 func NewRequest(options ...Option) *Request {
-	r := &Request{client: NewClient()}
+	r := &Request{client: DefaultClient}
 	r.req, _ = http.NewRequest("", "", nil)
 	for _, option := range options {
 		option(r)
