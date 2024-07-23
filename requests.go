@@ -3,7 +3,6 @@ package requests
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -12,16 +11,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 	"unsafe"
 
 	"github.com/juju/ratelimit"
-)
-
-const (
-	ContentTypeJson = "application/json;charset=utf-8"
-	ContentTypeForm = "application/x-www-form-urlencoded"
 )
 
 var (
@@ -100,7 +93,7 @@ func (r *Request) SetProxyUrl(proxy *url.URL) {
 	r.SetProxyFunc(http.ProxyURL(proxy))
 }
 
-func (r *Request) ParseUrl(originUrl string) error {
+func (r *Request) parseUrl(originUrl string) error {
 	if sendUrl, err := url.Parse(originUrl); err != nil {
 		return err
 	} else {
@@ -109,7 +102,10 @@ func (r *Request) ParseUrl(originUrl string) error {
 	}
 }
 
-func (r *Request) do() error {
+func (r *Request) do(options ...MethodOption) error {
+	for _, option := range options {
+		option(r)
+	}
 	resp, err := r.client.Do(r.req)
 	if err != nil {
 		return err
@@ -140,72 +136,41 @@ func (r Request) Request() *http.Request {
 	return r.req
 }
 
-func (r *Request) Get(originUrl string, params map[string]string) error {
+func (r *Request) Get(originUrl string, options ...MethodOption) error {
 	r.req.Method = http.MethodGet
-	if err := r.ParseUrl(originUrl); err != nil {
+	if err := r.parseUrl(originUrl); err != nil {
 		return err
 	}
-	p := url.Values{}
-	for k, v := range params {
-		p.Add(k, v)
-	}
-	r.req.URL.RawQuery = p.Encode()
-	return r.do()
+	return r.do(options...)
 }
 
-func (r *Request) Post(originUrl string, data map[string]interface{}) error {
+func (r *Request) Post(originUrl string, options ...MethodOption) error {
 	r.req.Method = http.MethodPost
-	if err := r.ParseUrl(originUrl); err != nil {
+	if err := r.parseUrl(originUrl); err != nil {
 		return err
 	}
-	jsonStr, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	r.req.Header.Set("Content-Type", ContentTypeJson)
-	r.req.Body = io.NopCloser(bytes.NewBuffer(jsonStr))
-	return r.do()
+	return r.do(options...)
 }
 
-func (r *Request) PostForm(originUrl string, data map[string]string) error {
-	r.req.Method = http.MethodPost
-	if err := r.ParseUrl(originUrl); err != nil {
-		return err
-	}
-	r.req.Header.Set("Content-Type", ContentTypeForm)
-	formData := url.Values{}
-	for k, v := range data {
-		formData.Add(k, v)
-	}
-	r.req.Body = io.NopCloser(strings.NewReader(formData.Encode()))
-	return r.do()
-}
-
-func (r *Request) Put(originUrl string, data map[string]interface{}) error {
+func (r *Request) Put(originUrl string, options ...MethodOption) error {
 	r.req.Method = http.MethodPut
-	if err := r.ParseUrl(originUrl); err != nil {
+	if err := r.parseUrl(originUrl); err != nil {
 		return err
 	}
-	jsonStr, _ := json.Marshal(data)
-	r.req.Header.Set("Content-Type", ContentTypeJson)
-	r.req.Body = io.NopCloser(bytes.NewBuffer(jsonStr))
-	return r.do()
+	return r.do(options...)
 }
 
-func (r *Request) Delete(originUrl string, data map[string]interface{}) error {
+func (r *Request) Delete(originUrl string, options ...MethodOption) error {
 	r.req.Method = http.MethodDelete
-	if err := r.ParseUrl(originUrl); err != nil {
+	if err := r.parseUrl(originUrl); err != nil {
 		return err
 	}
-	jsonStr, _ := json.Marshal(data)
-	r.req.Header.Set("Content-Type", ContentTypeJson)
-	r.req.Body = io.NopCloser(bytes.NewBuffer(jsonStr))
-	return r.do()
+	return r.do(options...)
 }
 
 func (r *Request) DownloadToWriter(originUrl string, w io.Writer) error {
 	r.req.Method = http.MethodGet
-	if err := r.ParseUrl(originUrl); err != nil {
+	if err := r.parseUrl(originUrl); err != nil {
 		return err
 	}
 	resp, err := r.client.Do(r.req)
@@ -235,7 +200,7 @@ func (r *Request) Download(filePath, originUrl string, rate int64) error {
 // Upload rate is upload speed per second, e.g. 1024 ==> 1KiB, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
 func (r *Request) Upload(originUrl string, data map[string]string, rate int64, filePaths ...string) error {
 	r.req.Method = http.MethodPost
-	if err := r.ParseUrl(originUrl); err != nil {
+	if err := r.parseUrl(originUrl); err != nil {
 		return err
 	}
 
@@ -289,8 +254,8 @@ func (r *Request) CloseIdleConnections() {
 	r.client.CloseIdleConnections()
 }
 
-// NewRequest use DefaultClient to do http request, Option can be provided to set Request properties
-func NewRequest(options ...Option) *Request {
+// NewRequest use DefaultClient to do http request, RequestOption can be provided to set Request properties
+func NewRequest(options ...RequestOption) *Request {
 	r := &Request{client: DefaultClient}
 	r.req, _ = http.NewRequest("", "", nil)
 	for _, option := range options {
@@ -299,7 +264,7 @@ func NewRequest(options ...Option) *Request {
 	return r
 }
 
-func NewSession(options ...Option) *Request {
+func NewSession(options ...RequestOption) *Request {
 	r := NewRequest(options...)
 	r.client.Jar, _ = cookiejar.New(nil)
 	return r
