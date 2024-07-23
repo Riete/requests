@@ -3,30 +3,74 @@
 Go HTTP Client Library
 
 ## Usage
+
+### New Request/Session or (Pool)
 ```
-// New Request
-r := NewRequest(WithTimout(time.Second))
+NewRequest(RequestOptions...)
+NewSession(RequestOptions...)
 
-// New Session
-r := NewSession(WithTimout(time.Second))
+// Pool
+NewRequestPool(RequestOptions...)
+NewSessionPool(RequestOptions...)
+```
 
-// do http method
-r.Get(url, map[string]string{})
-r.Post(url, map[string]interface{}{})
-r.PostFrom(url, map[string]string{})
-r.Put(url, map[string]interface{}{})
-r.Delete(url, map[string]interface{}{})
+### RequestOption
+* WithTimeout(t time.Duration)
+* WithHeader(headers ...map[string]string)
+* WithProxyEnv(proxy map[string]string)
+* WithProxyURL(proxy *url.URL)
+* WithProxyFunc(f func(*http.Request) (*url.URL, error))
+* WithUnsetProxy()
+* WithSkipTLS()
+* WithBasicAuth(username, password string)
+* WithBearerTokenAuth(token string)
+* WithTransport(tr http.RoundTripper)
+* WithDefaultTransport()
+* WithClient(client *http.Client)
+* WithDefaultClient()
 
-// download
-r.DownloadToWriter(originUrl, io.Writer)
-r.Download(filePath, originUrl, rate)
+### DoHttpMethod
+```
+r := NewRequest(RequestOptions...)
+r.SetXXX() // if needed
+r.Get(url, MethodOptions...)
+r.Post(url, MethodOptions...)
+r.Put(url, MethodOptions...)
+r.Delete(url, MethodOptions...)
+r.CloseIdleConnections() // if needed
+```
 
-// upload
-r.Upload(originUrl, map[string]string{}, rate, filepath1, filepath2 ...)
+### Upload/Download
+```
+// speed per second, e.g. 1024 ==> 1KiB, if rate <= 0 it means no limit
+r.Download(filePath, url, rate)
+r.Upload(url, data, rate, filePaths ...) 
+```
 
-// response
-r.Content()
-r.ContentToString()
-r.Status() // status code, status
-r.Resp() // raw http.Response
+### Response
+```
+r.Status() // status code and status
+r.Content() // []byte data
+r.ContentToString() // string data
+```
+
+### PoolMode
+```
+rp := NewRequestPool(RequestOptions...)
+r := p.Get()
+defer rp.Put(r)
+// Do Http Method
+...
+```
+
+### MethodOption
+* WithParams(params map[string]string)
+* WithJsonData(data map[string]any) MethodOption
+* WithFormData(data map[string]string)
+
+### Proxy
+```
+NewHttpProxy(addr, auth)
+NewSocks5Proxy(addr, auth)
+ProxyFromEnvironment(req *http.Request)
 ```

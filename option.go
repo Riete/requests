@@ -26,15 +26,15 @@ func WithHeader(headers ...map[string]string) RequestOption {
 	}
 }
 
-func WithProxyEnv(proxy Proxy) RequestOption {
+func WithProxyEnv(proxy map[string]string) RequestOption {
 	return func(r *Request) {
 		r.SetProxyEnv(proxy)
 	}
 }
 
-func WithProxyUrl(proxy *url.URL) RequestOption {
+func WithProxyURL(proxy *url.URL) RequestOption {
 	return func(r *Request) {
-		r.SetProxyUrl(proxy)
+		r.SetProxyURL(proxy)
 	}
 }
 

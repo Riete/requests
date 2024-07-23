@@ -78,7 +78,7 @@ func (r *Request) UnsetProxy() {
 	r.client.Transport.(*http.Transport).Proxy = nil
 }
 
-func (r *Request) SetProxyEnv(proxy Proxy) {
+func (r *Request) SetProxyEnv(proxy map[string]string) {
 	for k, v := range proxy {
 		_ = os.Setenv(k, v)
 	}
@@ -89,15 +89,15 @@ func (r *Request) SetProxyFunc(f func(*http.Request) (*url.URL, error)) {
 
 }
 
-func (r *Request) SetProxyUrl(proxy *url.URL) {
+func (r *Request) SetProxyURL(proxy *url.URL) {
 	r.SetProxyFunc(http.ProxyURL(proxy))
 }
 
-func (r *Request) parseUrl(originUrl string) error {
-	if sendUrl, err := url.Parse(originUrl); err != nil {
+func (r *Request) parseURL(originURL string) error {
+	if sendURL, err := url.Parse(originURL); err != nil {
 		return err
 	} else {
-		r.req.URL = sendUrl
+		r.req.URL = sendURL
 		return nil
 	}
 }
@@ -136,41 +136,41 @@ func (r Request) Request() *http.Request {
 	return r.req
 }
 
-func (r *Request) Get(originUrl string, options ...MethodOption) error {
+func (r *Request) Get(originURL string, options ...MethodOption) error {
 	r.req.Method = http.MethodGet
-	if err := r.parseUrl(originUrl); err != nil {
+	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 	return r.do(options...)
 }
 
-func (r *Request) Post(originUrl string, options ...MethodOption) error {
+func (r *Request) Post(originURL string, options ...MethodOption) error {
 	r.req.Method = http.MethodPost
-	if err := r.parseUrl(originUrl); err != nil {
+	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 	return r.do(options...)
 }
 
-func (r *Request) Put(originUrl string, options ...MethodOption) error {
+func (r *Request) Put(originURL string, options ...MethodOption) error {
 	r.req.Method = http.MethodPut
-	if err := r.parseUrl(originUrl); err != nil {
+	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 	return r.do(options...)
 }
 
-func (r *Request) Delete(originUrl string, options ...MethodOption) error {
+func (r *Request) Delete(originURL string, options ...MethodOption) error {
 	r.req.Method = http.MethodDelete
-	if err := r.parseUrl(originUrl); err != nil {
+	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 	return r.do(options...)
 }
 
-func (r *Request) DownloadToWriter(originUrl string, w io.Writer) error {
+func (r *Request) DownloadToWriter(originURL string, w io.Writer) error {
 	r.req.Method = http.MethodGet
-	if err := r.parseUrl(originUrl); err != nil {
+	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 	resp, err := r.client.Do(r.req)
@@ -184,7 +184,7 @@ func (r *Request) DownloadToWriter(originUrl string, w io.Writer) error {
 }
 
 // Download rate is download speed per second, e.g. 1024 ==> 1KiB/s, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
-func (r *Request) Download(filePath, originUrl string, rate int64) error {
+func (r *Request) Download(filePath, originURL string, rate int64) error {
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -192,15 +192,15 @@ func (r *Request) Download(filePath, originUrl string, rate int64) error {
 	defer f.Close()
 	if rate > 0 {
 		bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
-		return r.DownloadToWriter(originUrl, ratelimit.Writer(f, bucket))
+		return r.DownloadToWriter(originURL, ratelimit.Writer(f, bucket))
 	}
-	return r.DownloadToWriter(originUrl, f)
+	return r.DownloadToWriter(originURL, f)
 }
 
 // Upload rate is upload speed per second, e.g. 1024 ==> 1KiB, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
-func (r *Request) Upload(originUrl string, data map[string]string, rate int64, filePaths ...string) error {
+func (r *Request) Upload(originURL string, data map[string]string, rate int64, filePaths ...string) error {
 	r.req.Method = http.MethodPost
-	if err := r.parseUrl(originUrl); err != nil {
+	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 
