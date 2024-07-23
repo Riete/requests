@@ -7,17 +7,6 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
-type ProxyScheme string
-
-func (p ProxyScheme) String() string {
-	return string(p)
-}
-
-const (
-	HttpProxy   ProxyScheme = "http"
-	Socks5Proxy ProxyScheme = "socks5"
-)
-
 type Auth struct {
 	Username string
 	Password string
@@ -26,7 +15,7 @@ type Auth struct {
 // Proxy addr is host:port
 type Proxy struct {
 	addr     string
-	scheme   ProxyScheme
+	scheme   string
 	auth     *Auth
 	proxyURL string
 }
@@ -34,9 +23,9 @@ type Proxy struct {
 func (p *Proxy) buildProxyURL() {
 	if p.auth != nil {
 		credential := url.QueryEscape(p.auth.Username) + ":" + url.QueryEscape(p.auth.Password)
-		p.proxyURL = p.scheme.String() + "://" + credential + "@" + p.addr
+		p.proxyURL = p.scheme + "://" + credential + "@" + p.addr
 	} else {
-		p.proxyURL = p.scheme.String() + "://" + p.addr
+		p.proxyURL = p.scheme + "://" + p.addr
 	}
 }
 
@@ -52,18 +41,18 @@ func (p *Proxy) ProxyEnv() map[string]string {
 	return map[string]string{"http_proxy": p.proxyURL, "https_proxy": p.proxyURL}
 }
 
-func newProxy(scheme ProxyScheme, addr string, auth *Auth) *Proxy {
+func NewProxy(scheme, addr string, auth *Auth) *Proxy {
 	p := &Proxy{addr: addr, scheme: scheme, auth: auth}
 	p.buildProxyURL()
 	return p
 }
 
 func NewHttpProxy(addr string, auth *Auth) *Proxy {
-	return newProxy(HttpProxy, addr, auth)
+	return NewProxy("http", addr, auth)
 }
 
 func NewSocks5Proxy(addr string, auth *Auth) *Proxy {
-	return newProxy(Socks5Proxy, addr, auth)
+	return NewProxy("socks5", addr, auth)
 }
 
 // ProxyFromEnvironment read proxy form env for every request
