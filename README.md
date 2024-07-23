@@ -42,7 +42,7 @@ r.CloseIdleConnections() // if needed
 
 ### Upload/Download
 ```
-// speed per second, e.g. 1024 ==> 1KiB, if rate <= 0 it means no limit
+// rate is speed per second, e.g. 1024 ==> 1KiB, if rate <= 0 it means no limit
 r.Download(filePath, url, rate)
 r.Upload(url, data, rate, filePaths ...) 
 ```
