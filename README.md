@@ -6,12 +6,12 @@ Go HTTP Client Library
 
 ### New Request/Session or (Pool)
 ```
-NewRequest(RequestOptions...)
-NewSession(RequestOptions...)
+NewRequest(options ...RequestOption)
+NewSession(options ...RequestOption)
 
 // Pool
-NewRequestPool(RequestOptions...)
-NewSessionPool(RequestOptions...)
+NewRequestPool(options ...RequestOption)
+NewSessionPool(options ...RequestOption)
 ```
 
 ### RequestOption
@@ -33,18 +33,19 @@ NewSessionPool(RequestOptions...)
 ```
 r := NewRequest(RequestOptions...)
 r.SetXXX() // if needed
-r.Get(url, MethodOptions...)
-r.Post(url, MethodOptions...)
-r.Put(url, MethodOptions...)
-r.Delete(url, MethodOptions...)
+r.Get(originURL string, options ...MethodOption)
+r.Post(originURL string, options ...MethodOption)
+r.Put(originURL string, options ...MethodOption)
+r.Delete(originURL string, options ...MethodOption)
 r.CloseIdleConnections() // if needed
 ```
 
 ### Upload/Download
 ```
 // rate is speed per second, e.g. 1024 ==> 1KiB, if rate <= 0 it means no limit
-r.Download(filePath, url, rate)
-r.Upload(url, data, rate, filePaths ...) 
+r.DownloadToWriter(originURL string, w io.Writer)
+r.Download(filePath, originURL string, rate int64)
+r.Upload(originURL string, data map[string]string, rate int64, filePaths ...string) 
 ```
 
 ### Response
@@ -70,7 +71,8 @@ defer rp.Put(r)
 
 ### Proxy
 ```
-NewHttpProxy(addr, auth)
-NewSocks5Proxy(addr, auth)
+NewProxy(scheme, addr string, auth *Auth)
+NewHttpProxy(addr string, auth *Auth)
+NewSocks5Proxy(addr string, auth *Auth)
 ProxyFromEnvironment(req *http.Request)
 ```

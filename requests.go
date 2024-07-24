@@ -86,7 +86,6 @@ func (r *Request) SetProxyEnv(proxy map[string]string) {
 
 func (r *Request) SetProxyFunc(f func(*http.Request) (*url.URL, error)) {
 	r.client.Transport.(*http.Transport).Proxy = f
-
 }
 
 func (r *Request) SetProxyURL(proxy *url.URL) {
@@ -94,23 +93,20 @@ func (r *Request) SetProxyURL(proxy *url.URL) {
 }
 
 func (r *Request) parseURL(originURL string) error {
-	if sendURL, err := url.Parse(originURL); err != nil {
-		return err
-	} else {
-		r.req.URL = sendURL
-		return nil
-	}
+	var err error
+	r.req.URL, err = url.Parse(originURL)
+	return err
 }
 
 func (r *Request) do(options ...MethodOption) error {
 	for _, option := range options {
 		option(r)
 	}
-	resp, err := r.client.Do(r.req)
+	var err error
+	r.resp, err = r.client.Do(r.req)
 	if err != nil {
 		return err
 	}
-	r.resp = resp
 	defer r.resp.Body.Close()
 	r.content, err = io.ReadAll(r.resp.Body)
 	return err
@@ -168,26 +164,25 @@ func (r *Request) Delete(originURL string, options ...MethodOption) error {
 	return r.do(options...)
 }
 
-func (r *Request) DownloadToWriter(originURL string, w io.Writer) error {
+func (r *Request) DownloadToWriter(originURL string, w io.Writer) (int64, error) {
 	r.req.Method = http.MethodGet
-	if err := r.parseURL(originURL); err != nil {
-		return err
-	}
-	resp, err := r.client.Do(r.req)
+	err := r.parseURL(originURL)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	r.resp = resp
+	r.resp, err = r.client.Do(r.req)
+	if err != nil {
+		return 0, err
+	}
 	defer r.resp.Body.Close()
-	_, err = io.Copy(w, r.resp.Body)
-	return err
+	return io.Copy(w, r.resp.Body)
 }
 
 // Download rate is download speed per second, e.g. 1024 ==> 1KiB/s, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
-func (r *Request) Download(filePath, originURL string, rate int64) error {
+func (r *Request) Download(filePath, originURL string, rate int64) (int64, error) {
 	f, err := os.Create(filePath)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer f.Close()
 	if rate > 0 {
@@ -226,7 +221,7 @@ func (r *Request) Upload(originURL string, data map[string]string, rate int64, f
 		}
 		fileCloser = append(fileCloser, f)
 
-		writer, err := w.CreateFormFile("file", filepath.Base(fp))
+		writer, err := w.CreateFormFile("files", filepath.Base(fp))
 		if err != nil {
 			return err
 		}
