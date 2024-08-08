@@ -1,8 +1,10 @@
 package requests
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -162,6 +164,60 @@ func (r *Request) Delete(originURL string, options ...MethodOption) error {
 		return err
 	}
 	return r.do(options...)
+}
+
+func (r *Request) stream(originURL string, options ...MethodOption) error {
+	var err error
+	r.req.Method = http.MethodGet
+	if err = r.parseURL(originURL); err != nil {
+		return err
+	}
+	for _, option := range options {
+		option(r)
+	}
+	r.resp, err = r.client.Do(r.req)
+	return err
+}
+
+func (r *Request) StringStream(originURL string, event chan string, options ...MethodOption) error {
+	var err error
+	defer close(event)
+	if err = r.stream(originURL, options...); err != nil {
+		return err
+	}
+	defer r.resp.Body.Close()
+
+	br := bufio.NewReader(r.resp.Body)
+	var line string
+	for {
+		if line, err = br.ReadString('\n'); err != nil {
+			break
+		}
+		event <- line
+	}
+	if err == io.EOF {
+		return nil
+	}
+	return err
+}
+
+func (r *Request) JsonStream(originURL string, event chan map[string]any, options ...MethodOption) error {
+	var err error
+	defer close(event)
+	if err = r.stream(originURL, options...); err != nil {
+		return err
+	}
+	defer r.resp.Body.Close()
+
+	decoder := json.NewDecoder(r.resp.Body)
+	for {
+		data := make(map[string]any)
+		if err = decoder.Decode(&data); err != nil {
+			break
+		}
+		event <- data
+	}
+	return err
 }
 
 func (r *Request) DownloadToWriter(originURL string, w io.Writer) (int64, error) {
