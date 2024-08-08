@@ -40,6 +40,12 @@ r.Delete(originURL string, options ...MethodOption)
 r.CloseIdleConnections() // if needed
 ```
 
+### StreamMode
+```
+r.StringStream(originURL string, event chan string, options ...MethodOption)
+r.JsonStream(originURL string, event chan map[string]any, options ...MethodOption)
+```
+
 ### Upload/Download
 ```
 // rate is speed per second, e.g. 1024 ==> 1KiB, if rate <= 0 it means no limit
