@@ -42,8 +42,8 @@ r.CloseIdleConnections() // if needed
 
 ### StreamMode
 ```
-r.StringStream(originURL string, event chan string, options ...MethodOption)
-r.JsonStream(originURL string, event chan map[string]any, options ...MethodOption)
+s, _ := r.Stream(originURL string, options ...MethodOption)
+ReadStream(s, chan T)
 ```
 
 ### Upload/Download
