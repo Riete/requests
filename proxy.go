@@ -33,8 +33,10 @@ func (p *Proxy) ProxyRawURL() string {
 	return p.proxyURL
 }
 
-func (p *Proxy) ProxyURL() (*url.URL, error) {
-	return url.Parse(p.proxyURL)
+func (p *Proxy) ProxyURL() func(*http.Request) (*url.URL, error) {
+	return func(*http.Request) (*url.URL, error) {
+		return url.Parse(p.proxyURL)
+	}
 }
 
 func (p *Proxy) ProxyEnv() map[string]string {
