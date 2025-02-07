@@ -94,6 +94,12 @@ func WithDefaultClient() RequestOption {
 
 type MethodOption func(r *Request)
 
+func WithMethod(method string) MethodOption {
+	return func(r *Request) {
+		r.req.Method = method
+	}
+}
+
 func WithParams(params map[string]string) MethodOption {
 	return func(r *Request) {
 		p := url.Values{}
