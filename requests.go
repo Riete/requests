@@ -3,6 +3,7 @@ package requests
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -112,56 +113,60 @@ func (r *Request) do(options ...MethodOption) error {
 	return err
 }
 
-func (r Request) Content() []byte {
+func (r *Request) Content() []byte {
 	return r.content
 }
 
-func (r Request) ContentToString() string {
+func (r *Request) ContentToString() string {
 	return *(*string)(unsafe.Pointer(&r.content))
 }
 
-func (r Request) Status() (int, string) {
+func (r *Request) Json() (map[string]any, error) {
+	m := make(map[string]any)
+	return m, json.Unmarshal(r.content, &m)
+}
+
+func (r *Request) JsonTo(dest any) error {
+	return json.Unmarshal(r.content, dest)
+}
+
+func (r *Request) Status() (int, string) {
 	return r.resp.StatusCode, r.resp.Status
 }
 
-func (r Request) Response() *http.Response {
+func (r *Request) Response() *http.Response {
 	return r.resp
 }
 
-func (r Request) Request() *http.Request {
+func (r *Request) Request() *http.Request {
 	return r.req
 }
 
-func (r *Request) Get(originURL string, options ...MethodOption) error {
-	r.req.Method = http.MethodGet
+func (r *Request) Do(originURL string, options ...MethodOption) error {
 	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
 	return r.do(options...)
+}
+
+func (r *Request) Get(originURL string, options ...MethodOption) error {
+	return r.Do(originURL, append(options, WithMethod(http.MethodGet))...)
 }
 
 func (r *Request) Post(originURL string, options ...MethodOption) error {
-	r.req.Method = http.MethodPost
-	if err := r.parseURL(originURL); err != nil {
-		return err
-	}
-	return r.do(options...)
+	return r.Do(originURL, append(options, WithMethod(http.MethodPost))...)
 }
 
 func (r *Request) Put(originURL string, options ...MethodOption) error {
-	r.req.Method = http.MethodPut
-	if err := r.parseURL(originURL); err != nil {
-		return err
-	}
-	return r.do(options...)
+	return r.Do(originURL, append(options, WithMethod(http.MethodPost))...)
+}
+
+func (r *Request) Patch(originURL string, options ...MethodOption) error {
+	return r.Do(originURL, append(options, WithMethod(http.MethodPatch))...)
 }
 
 func (r *Request) Delete(originURL string, options ...MethodOption) error {
-	r.req.Method = http.MethodDelete
-	if err := r.parseURL(originURL); err != nil {
-		return err
-	}
-	return r.do(options...)
+	return r.Do(originURL, append(options, WithMethod(http.MethodDelete))...)
 }
 
 // Stream return io.ReadCloser, use ReadStream to read stream data
@@ -178,11 +183,14 @@ func (r *Request) Stream(originURL string, options ...MethodOption) (io.ReadClos
 	return r.resp.Body, err
 }
 
-func (r *Request) DownloadToWriter(originURL string, w io.Writer) (int64, error) {
+func (r *Request) DownloadToWriter(originURL string, w io.Writer, options ...MethodOption) (int64, error) {
 	r.req.Method = http.MethodGet
 	err := r.parseURL(originURL)
 	if err != nil {
 		return 0, err
+	}
+	for _, option := range options {
+		option(r)
 	}
 	r.resp, err = r.client.Do(r.req)
 	if err != nil {
@@ -193,7 +201,7 @@ func (r *Request) DownloadToWriter(originURL string, w io.Writer) (int64, error)
 }
 
 // Download rate is download speed per second, e.g. 1024 ==> 1KiB/s, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
-func (r *Request) Download(filePath, originURL string, rate int64) (int64, error) {
+func (r *Request) Download(filePath, originURL string, rate int64, options ...MethodOption) (int64, error) {
 	f, err := os.Create(filePath)
 	if err != nil {
 		return 0, err
@@ -201,18 +209,20 @@ func (r *Request) Download(filePath, originURL string, rate int64) (int64, error
 	defer f.Close()
 	if rate > 0 {
 		bucket := ratelimit.NewBucketWithRate(float64(rate), rate)
-		return r.DownloadToWriter(originURL, ratelimit.Writer(f, bucket))
+		return r.DownloadToWriter(originURL, ratelimit.Writer(f, bucket), options...)
 	}
-	return r.DownloadToWriter(originURL, f)
+	return r.DownloadToWriter(originURL, f, options...)
 }
 
 // Upload rate is upload speed per second, e.g. 1024 ==> 1KiB, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
-func (r *Request) Upload(originURL string, data map[string]string, rate int64, filePaths ...string) error {
+func (r *Request) Upload(originURL string, data map[string]string, rate int64, filePaths []string, options ...MethodOption) error {
 	r.req.Method = http.MethodPost
 	if err := r.parseURL(originURL); err != nil {
 		return err
 	}
-
+	for _, option := range options {
+		option(r)
+	}
 	body := &bytes.Buffer{}
 	w := multipart.NewWriter(body)
 	for k, v := range data {

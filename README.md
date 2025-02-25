@@ -33,9 +33,11 @@ NewSessionPool(options ...RequestOption)
 ```
 r := NewRequest(RequestOptions...)
 r.SetXXX() // if needed
+r.Do(originURL string, options ...MethodOption)
 r.Get(originURL string, options ...MethodOption)
 r.Post(originURL string, options ...MethodOption)
 r.Put(originURL string, options ...MethodOption)
+r.Patch(originURL string, options ...MethodOption)
 r.Delete(originURL string, options ...MethodOption)
 r.CloseIdleConnections() // if needed
 ```
@@ -59,6 +61,8 @@ r.Upload(originURL string, data map[string]string, rate int64, filePaths ...stri
 r.Status() // status code and status
 r.Content() // []byte data
 r.ContentToString() // string data
+r.Json() // map[string]any
+r.JsonTo(v any)
 ```
 
 ### PoolMode
