@@ -18,12 +18,8 @@ import (
 	"github.com/juju/ratelimit"
 )
 
-var (
-	// DefaultTransport is clone of http.DefaultTransport
-	DefaultTransport = NewTransport()
-	// DefaultClient set Transport to DefaultTransport
-	DefaultClient = NewClient()
-)
+// DefaultClient set transport to clone of http.DefaultTransport
+var DefaultClient = NewClient()
 
 // NewTransport return clone of http.DefaultTransport
 func NewTransport() *http.Transport {
@@ -158,7 +154,7 @@ func (r *Request) Post(originURL string, options ...MethodOption) error {
 }
 
 func (r *Request) Put(originURL string, options ...MethodOption) error {
-	return r.Do(originURL, append(options, WithMethod(http.MethodPost))...)
+	return r.Do(originURL, append(options, WithMethod(http.MethodPut))...)
 }
 
 func (r *Request) Patch(originURL string, options ...MethodOption) error {
@@ -273,7 +269,7 @@ func (r *Request) CloseIdleConnections() {
 	r.client.CloseIdleConnections()
 }
 
-// NewRequest use DefaultClient to do http request, RequestOption can be provided to set Request properties
+// NewRequest default use DefaultClient to do http request, RequestOption can be provided to set Request properties
 func NewRequest(options ...RequestOption) *Request {
 	r := &Request{client: DefaultClient}
 	r.req, _ = http.NewRequest("", "", nil)
