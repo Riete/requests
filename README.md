@@ -53,7 +53,7 @@ ReadStream(s, chan T)
 // rate is speed per second, e.g. 1024 ==> 1KiB, if rate <= 0 it means no limit
 r.DownloadToWriter(originURL string, w io.Writer)
 r.Download(filePath, originURL string, rate int64)
-r.Upload(originURL string, data map[string]string, rate int64, filePaths ...string) 
+r.Upload(originURL string, data map[string]string, rate int64, fileFieldName string, filePaths ...string) 
 ```
 
 ### Response

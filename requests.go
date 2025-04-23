@@ -211,7 +211,7 @@ func (r *Request) Download(filePath, originURL string, rate int64, options ...Me
 }
 
 // Upload rate is upload speed per second, e.g. 1024 ==> 1KiB, 1024*1024 ==> 1MiB/s, if rate <= 0 it means no limit
-func (r *Request) Upload(originURL string, data map[string]string, rate int64, filePaths []string, options ...MethodOption) error {
+func (r *Request) Upload(originURL string, data map[string]string, rate int64, fileFieldName string, filePaths []string, options ...MethodOption) error {
 	r.req.Method = http.MethodPost
 	if err := r.parseURL(originURL); err != nil {
 		return err
@@ -241,7 +241,7 @@ func (r *Request) Upload(originURL string, data map[string]string, rate int64, f
 		}
 		fileCloser = append(fileCloser, f)
 
-		writer, err := w.CreateFormFile("files", filepath.Base(fp))
+		writer, err := w.CreateFormFile(fileFieldName, filepath.Base(fp))
 		if err != nil {
 			return err
 		}
